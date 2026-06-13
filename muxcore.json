@@ -1,0 +1,16 @@
+{
+  "name": "Executor Shell",
+  "description": "Generic shell command executor for the worker pool",
+  "version": "0.1.0",
+  "author": "MuxCore",
+  "roles": ["executor"],
+  "capabilities": ["executor.shell"],
+  "contracts": [
+    {
+      "repo": "github.com/Muxcore-Media/core/pkg/contracts",
+      "interface": "Executor",
+      "version": "v0.4.0"
+    }
+  ],
+  "minCoreVersion": "0.4.0"
+}

@@ -1,0 +1,14 @@
+services:
+  executor-shell:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "9602"
+    environment:
+      MUXCORE_GRPC_ADDR: core:9090
+      MUXCORE_INSECURE_DISABLE_TLS: "true"
+      MUXCORE_LOG_LEVEL: debug
+      MUXCORE_MODULE_ID: executor-shell
+      EXECUTOR_ALLOWED_COMMANDS: ""
+    restart: unless-stopped

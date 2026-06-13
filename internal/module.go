@@ -1,0 +1,169 @@
+package internal
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"log/slog"
+	"net"
+	"os"
+	"os/exec"
+	"strings"
+
+	"google.golang.org/grpc"
+
+	"github.com/Muxcore-Media/core/pkg/contracts"
+	executorv1 "github.com/Muxcore-Media/core/proto/gen/muxcore/executor/v1"
+)
+
+type Module struct {
+	executorv1.UnimplementedExecutorServiceServer
+
+	grpcSrv *grpc.Server
+	lis     net.Listener
+
+	id              string
+	grpcAddr        string
+	allowedCommands string
+}
+
+type Config struct {
+	ID              string
+	GRPCAddr        string
+	AllowedCommands string
+}
+
+func NewModule(cfg Config) *Module {
+	if cfg.ID == "" {
+		cfg.ID = "executor-shell"
+	}
+	if cfg.GRPCAddr == "" {
+		cfg.GRPCAddr = ":9602"
+	}
+	if v := os.Getenv("EXECUTOR_GRPC_ADDR"); v != "" {
+		cfg.GRPCAddr = v
+	}
+	if v := os.Getenv("EXECUTOR_ALLOWED_COMMANDS"); v != "" {
+		cfg.AllowedCommands = v
+	}
+	return &Module{
+		id:              cfg.ID,
+		grpcAddr:        cfg.GRPCAddr,
+		allowedCommands: cfg.AllowedCommands,
+	}
+}
+
+func (m *Module) Info() contracts.ModuleInfo {
+	return contracts.ModuleInfo{
+		ID:           m.id,
+		Name:         "Executor Shell",
+		Version:      "0.1.0",
+		Roles:        []string{"executor"},
+		Description:  "Generic shell command executor for the worker pool",
+		Author:       "MuxCore",
+		Capabilities: []string{"executor.shell"},
+		Contracts: []contracts.ContractDeclaration{
+			{
+				Repo:      "github.com/Muxcore-Media/core/pkg/contracts",
+				Interface: "Executor",
+				Version:   "v0.4.0",
+			},
+		},
+		MinCoreVersion: "0.4.0",
+		HTTPAddr:       m.grpcAddr,
+	}
+}
+
+func (m *Module) Init(ctx context.Context) error {
+	lis, err := net.Listen("tcp", m.grpcAddr)
+	if err != nil {
+		return fmt.Errorf("listen %s: %w", m.grpcAddr, err)
+	}
+	m.lis = lis
+	slog.Info("executor-shell initialized", "addr", m.grpcAddr, "allowed_commands", m.allowedCommands)
+	return nil
+}
+
+func (m *Module) Start(ctx context.Context) error {
+	m.grpcSrv = grpc.NewServer()
+	executorv1.RegisterExecutorServiceServer(m.grpcSrv, m)
+	go func() {
+		slog.Info("executor-shell gRPC service started", "addr", m.grpcAddr)
+		if err := m.grpcSrv.Serve(m.lis); err != nil {
+			slog.Error("executor-shell gRPC serve error", "error", err)
+		}
+	}()
+	return nil
+}
+
+func (m *Module) Stop(ctx context.Context) error {
+	if m.grpcSrv != nil {
+		m.grpcSrv.GracefulStop()
+	}
+	slog.Info("executor-shell stopped")
+	return nil
+}
+
+func (m *Module) Health(ctx context.Context) error {
+	if m.lis == nil {
+		return fmt.Errorf("not initialized")
+	}
+	return nil
+}
+
+func (m *Module) CanHandle(ctx context.Context, req *executorv1.CanHandleRequest) (*executorv1.CanHandleResponse, error) {
+	return &executorv1.CanHandleResponse{
+		CanHandle: req.GetTaskType() == "shell",
+	}, nil
+}
+
+func (m *Module) Execute(ctx context.Context, req *executorv1.ExecuteRequest) (*executorv1.ExecuteResponse, error) {
+	payload := string(req.GetPayload())
+	if payload == "" {
+		return &executorv1.ExecuteResponse{
+			Success: false,
+			Error:   "empty command payload",
+		}, nil
+	}
+
+	if m.allowedCommands != "" {
+		allowed := strings.Split(m.allowedCommands, ",")
+		valid := false
+		for _, prefix := range allowed {
+			prefix = strings.TrimSpace(prefix)
+			if prefix != "" && strings.HasPrefix(payload, prefix) {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			slog.Warn("rejected command not in allowed list", "command", payload)
+			return &executorv1.ExecuteResponse{
+				Success: false,
+				Error:   fmt.Sprintf("command not allowed: must start with one of: %s", m.allowedCommands),
+			}, nil
+		}
+	}
+
+	cmd := exec.CommandContext(ctx, "sh", "-c", payload)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		output := stderr.String()
+		if output == "" {
+			output = err.Error()
+		}
+		return &executorv1.ExecuteResponse{
+			Success: false,
+			Result:  stdout.Bytes(),
+			Error:   output,
+		}, nil
+	}
+
+	return &executorv1.ExecuteResponse{
+		Success: true,
+		Result:  stdout.Bytes(),
+	}, nil
+}
