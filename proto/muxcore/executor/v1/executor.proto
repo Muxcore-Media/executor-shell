@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package muxcore.executor.v1;
+
+option go_package = "github.com/Muxcore-Media/executor-shell/muxcore/executor/v1;executorv1";
+
+service ExecutorService {
+  rpc CanHandle(CanHandleRequest) returns (CanHandleResponse);
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+}
+
+message CanHandleRequest {
+  string task_type = 1;
+}
+
+message CanHandleResponse {
+  bool can_handle = 1;
+}
+
+message ExecuteRequest {
+  bytes payload = 1;
+}
+
+message ExecuteResponse {
+  bool success = 1;
+  bytes result = 2;
+  string error = 3;
+}

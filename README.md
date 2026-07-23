@@ -15,8 +15,13 @@ A MuxCore sidecar module that executes shell commands from worker pool tasks. Wh
 Worker pool task ──→ executor-shell (gRPC) ──→ sh -c "<payload>"
                                                    │
                                                    ▼
-                                             stdout + stderr
+                                    success → Result = stdout
+                                    failure → Error = stderr (or exec error)
 ```
+
+**Capability:** `executor.shell`  
+**Contract:** `Executor` (`v0.4.0`, min core `0.4.0`)  
+**Task type:** `shell`
 
 ---
 
@@ -27,11 +32,17 @@ Worker pool task ──→ executor-shell (gRPC) ──→ sh -c "<payload>"
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `EXECUTOR_GRPC_ADDR` | `:9602` | gRPC listen address |
-| `EXECUTOR_ALLOWED_COMMANDS` | `""` | Comma-separated command prefixes (empty = allow any) |
+| `EXECUTOR_ALLOWED_COMMANDS` | `""` (deny all) | Comma-separated command prefixes. Empty denies every command. Use `*` for unrestricted. |
 
 ### Security
 
-When `EXECUTOR_ALLOWED_COMMANDS` is set (e.g., `git,make,ls`), only commands starting with one of the specified prefixes are executed. Rejected commands are logged at WARN level.
+Commands are checked against `EXECUTOR_ALLOWED_COMMANDS` before execution:
+
+- **Empty** — deny all (fail-closed default).
+- **Prefixes** — e.g. `git,make,ls` allows only payloads that start with one of those prefixes.
+- **`*`** — unrestricted (explicit opt-in).
+
+Rejected commands are logged at WARN level.
 
 ---
 
