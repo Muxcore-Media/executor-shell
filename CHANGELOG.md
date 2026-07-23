@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Shell command executor gRPC service (executor.v1)
 - `CanHandle` returns true for task type `"shell"`
-- `Execute` runs payload as shell command via `sh -c`, captures stdout+stderr
+- `Execute` runs payload as shell command via `sh -c`; Result is stdout, Error is stderr (or exec error) on failure
 - Security: optional allow-list via `EXECUTOR_ALLOWED_COMMANDS` env var
 - Contract declaration: `Executor` with `MinCoreVersion: 0.4.0`
 - Full test suite: module info, CanHandle, module lifecycle

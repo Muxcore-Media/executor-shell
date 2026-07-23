@@ -1,6 +1,7 @@
-.PHONY: build test lint clean fmt tidy docker docker-push ci help
+.PHONY: build test lint clean fmt tidy proto docker docker-push ci help
 
 GO ?= go
+PROTOC ?= protoc
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "0.0.0-dev")
 LDFLAGS ?= -s -w -X main.version=$(VERSION)
 BINARY ?= executor-shell
@@ -25,6 +26,11 @@ fmt:
 tidy:
 	$(GO) mod tidy
 
+proto:
+	$(PROTOC) --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		-I proto proto/muxcore/executor/v1/executor.proto
+
 docker:
 	docker build -t ghcr.io/muxcore-media/$(BINARY):$(VERSION) .
 	docker tag ghcr.io/muxcore-media/$(BINARY):$(VERSION) ghcr.io/muxcore-media/$(BINARY):latest
@@ -43,6 +49,7 @@ help:
 	@echo "  clean       - remove build artifacts"
 	@echo "  fmt         - format Go source"
 	@echo "  tidy        - go mod tidy"
+	@echo "  proto       - regenerate executor gRPC stubs"
 	@echo "  docker      - build Docker image"
 	@echo "  docker-push - build and push Docker image"
 	@echo "  ci          - lint + test + build"

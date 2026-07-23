@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/Muxcore-Media/core/pkg/contracts"
-	executorv1 "github.com/Muxcore-Media/core/proto/gen/muxcore/executor/v1"
+	executorv1 "github.com/Muxcore-Media/executor-shell/muxcore/executor/v1"
 )
 
 type Module struct {
@@ -117,6 +117,23 @@ func (m *Module) CanHandle(ctx context.Context, req *executorv1.CanHandleRequest
 	}, nil
 }
 
+func (m *Module) commandAllowed(payload string) bool {
+	raw := strings.TrimSpace(m.allowedCommands)
+	if raw == "" {
+		return false
+	}
+	for _, prefix := range strings.Split(raw, ",") {
+		prefix = strings.TrimSpace(prefix)
+		if prefix == "" {
+			continue
+		}
+		if prefix == "*" || strings.HasPrefix(payload, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *Module) Execute(ctx context.Context, req *executorv1.ExecuteRequest) (*executorv1.ExecuteResponse, error) {
 	payload := string(req.GetPayload())
 	if payload == "" {
@@ -126,23 +143,16 @@ func (m *Module) Execute(ctx context.Context, req *executorv1.ExecuteRequest) (*
 		}, nil
 	}
 
-	if m.allowedCommands != "" {
-		allowed := strings.Split(m.allowedCommands, ",")
-		valid := false
-		for _, prefix := range allowed {
-			prefix = strings.TrimSpace(prefix)
-			if prefix != "" && strings.HasPrefix(payload, prefix) {
-				valid = true
-				break
-			}
+	if !m.commandAllowed(payload) {
+		slog.Warn("rejected command not in allowed list", "command", payload)
+		errMsg := "command not allowed: empty allowlist denies all; set EXECUTOR_ALLOWED_COMMANDS to prefixes or *"
+		if strings.TrimSpace(m.allowedCommands) != "" {
+			errMsg = fmt.Sprintf("command not allowed: must start with one of: %s", m.allowedCommands)
 		}
-		if !valid {
-			slog.Warn("rejected command not in allowed list", "command", payload)
-			return &executorv1.ExecuteResponse{
-				Success: false,
-				Error:   fmt.Sprintf("command not allowed: must start with one of: %s", m.allowedCommands),
-			}, nil
-		}
+		return &executorv1.ExecuteResponse{
+			Success: false,
+			Error:   errMsg,
+		}, nil
 	}
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", payload)
