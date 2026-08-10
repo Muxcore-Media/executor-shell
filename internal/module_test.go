@@ -189,3 +189,28 @@ func TestExecuteContextCancel(t *testing.T) {
 		t.Fatal("Execute did not return after cancel")
 	}
 }
+
+func TestSettingsAllowedCommandsLive(t *testing.T) {
+	m := NewModule(Config{})
+	defs := m.Settings()
+	if len(defs) != 1 || defs[0].Key != "allowed_commands" {
+		t.Fatalf("Settings=%+v", defs)
+	}
+	resp, err := m.Execute(context.Background(), &executorv1.ExecuteRequest{Payload: []byte("echo hi")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.GetSuccess() {
+		t.Fatal("empty allowlist should deny")
+	}
+	if err := m.UpdateSetting("allowed_commands", "echo "); err != nil {
+		t.Fatal(err)
+	}
+	resp, err = m.Execute(context.Background(), &executorv1.ExecuteRequest{Payload: []byte("echo hi")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resp.GetSuccess() {
+		t.Fatalf("expected success after allowlist update: %s", resp.GetError())
+	}
+}
