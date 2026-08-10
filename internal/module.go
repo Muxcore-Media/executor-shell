@@ -60,11 +60,11 @@ func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
 		ID:           m.id,
 		Name:         "Executor Shell",
-		Version:      "0.1.3",
+		Version:      "0.1.4",
 		Roles:        []string{"executor"},
 		Description:  "Generic shell command executor for the worker pool",
 		Author:       "MuxCore",
-		Capabilities: []string{"executor.shell"},
+		Capabilities: []string{"executor.shell", "settings"},
 		Contracts: []contracts.ContractDeclaration{
 			{
 				Repo:      "github.com/Muxcore-Media/core/pkg/contracts",
