@@ -1,0 +1,45 @@
+package internal
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/Muxcore-Media/core/pkg/contracts"
+)
+
+func (m *Module) Settings() []contracts.SettingDef {
+	return m.settingsDefs()
+}
+
+func (m *Module) UpdateSetting(key, value string) error {
+	return m.updateSetting(key, value)
+}
+
+func (m *Module) settingsDefs() []contracts.SettingDef {
+	m.mu.RLock()
+	allowed := m.allowedCommands
+	m.mu.RUnlock()
+	return []contracts.SettingDef{
+		{
+			Key:         "allowed_commands",
+			Label:       "Allowed Commands",
+			Type:        contracts.SettingTypeString,
+			Value:       allowed,
+			Default:     "",
+			Description: "Comma-separated command prefixes (EXECUTOR_ALLOWED_COMMANDS). Empty denies all; avoid * in production.",
+			Group:       "Security",
+		},
+	}
+}
+
+func (m *Module) updateSetting(key, value string) error {
+	switch key {
+	case "allowed_commands", "EXECUTOR_ALLOWED_COMMANDS":
+		m.mu.Lock()
+		m.allowedCommands = strings.TrimSpace(value)
+		m.mu.Unlock()
+		return nil
+	default:
+		return fmt.Errorf("unknown setting %q", key)
+	}
+}

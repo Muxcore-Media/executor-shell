@@ -9,10 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 
 	"github.com/Muxcore-Media/core/pkg/contracts"
+	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
 	executorv1 "github.com/Muxcore-Media/executor-shell/muxcore/executor/v1"
 )
 
@@ -22,6 +24,7 @@ type Module struct {
 	grpcSrv *grpc.Server
 	lis     net.Listener
 
+	mu              sync.RWMutex
 	id              string
 	grpcAddr        string
 	allowedCommands string
@@ -57,7 +60,7 @@ func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
 		ID:           m.id,
 		Name:         "Executor Shell",
-		Version:      "0.1.2",
+		Version:      "0.1.3",
 		Roles:        []string{"executor"},
 		Description:  "Generic shell command executor for the worker pool",
 		Author:       "MuxCore",
@@ -87,6 +90,7 @@ func (m *Module) Init(ctx context.Context) error {
 func (m *Module) Start(ctx context.Context) error {
 	m.grpcSrv = grpc.NewServer()
 	executorv1.RegisterExecutorServiceServer(m.grpcSrv, m)
+	modulesdk.RegisterSettings(m.grpcSrv, m.id, m)
 	go func() {
 		slog.Info("executor-shell gRPC service started", "addr", m.grpcAddr)
 		if err := m.grpcSrv.Serve(m.lis); err != nil {
@@ -118,7 +122,9 @@ func (m *Module) CanHandle(ctx context.Context, req *executorv1.CanHandleRequest
 }
 
 func (m *Module) commandAllowed(payload string) bool {
+	m.mu.RLock()
 	raw := strings.TrimSpace(m.allowedCommands)
+	m.mu.RUnlock()
 	if raw == "" {
 		return false
 	}
@@ -143,11 +149,14 @@ func (m *Module) Execute(ctx context.Context, req *executorv1.ExecuteRequest) (*
 		}, nil
 	}
 
+	m.mu.RLock()
+	allowed := m.allowedCommands
+	m.mu.RUnlock()
 	if !m.commandAllowed(payload) {
 		slog.Warn("rejected command not in allowed list", "command", payload)
 		errMsg := "command not allowed: empty allowlist denies all; set EXECUTOR_ALLOWED_COMMANDS to prefixes or *"
-		if strings.TrimSpace(m.allowedCommands) != "" {
-			errMsg = fmt.Sprintf("command not allowed: must start with one of: %s", m.allowedCommands)
+		if strings.TrimSpace(allowed) != "" {
+			errMsg = fmt.Sprintf("command not allowed: must start with one of: %s", allowed)
 		}
 		return &executorv1.ExecuteResponse{
 			Success: false,
