@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	executorv1 "github.com/Muxcore-Media/executor-shell/muxcore/executor/v1"
 )
@@ -140,5 +141,51 @@ func TestCommandAllowed(t *testing.T) {
 		if got := m.commandAllowed(tc.payload); got != tc.want {
 			t.Fatalf("allow=%q payload=%q got %v want %v", tc.allow, tc.payload, got, tc.want)
 		}
+	}
+}
+
+func TestExecuteContextTimeout(t *testing.T) {
+	m := NewModule(Config{AllowedCommands: "*"})
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	resp, err := m.Execute(ctx, &executorv1.ExecuteRequest{
+		Payload: []byte("sleep 5"),
+	})
+	elapsed := time.Since(start)
+	if err != nil {
+		t.Fatalf("Execute error: %v", err)
+	}
+	if resp.GetSuccess() {
+		t.Fatal("expected failure on timeout")
+	}
+	if elapsed > 2*time.Second {
+		t.Fatalf("command not cancelled promptly: %v", elapsed)
+	}
+}
+
+func TestExecuteContextCancel(t *testing.T) {
+	m := NewModule(Config{AllowedCommands: "*"})
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		resp, err := m.Execute(ctx, &executorv1.ExecuteRequest{
+			Payload: []byte("sleep 5"),
+		})
+		if err != nil {
+			t.Errorf("Execute error: %v", err)
+			return
+		}
+		if resp.GetSuccess() {
+			t.Error("expected failure after cancel")
+		}
+	}()
+	time.Sleep(30 * time.Millisecond)
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Execute did not return after cancel")
 	}
 }
