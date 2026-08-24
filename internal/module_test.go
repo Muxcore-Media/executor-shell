@@ -87,6 +87,7 @@ func TestExecuteEmptyAllowlistDenies(t *testing.T) {
 }
 
 func TestExecuteStarAllows(t *testing.T) {
+	t.Setenv("EXECUTOR_ALLOW_WILDCARD", "1")
 	m := NewModule(Config{AllowedCommands: "*"})
 	resp, err := m.Execute(context.Background(), &executorv1.ExecuteRequest{
 		Payload: []byte("echo ok"),

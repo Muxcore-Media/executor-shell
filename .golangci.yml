@@ -1,17 +1,25 @@
+# Canonical golangci-lint v2 config for MuxCore sidecar modules.
+# Copy to module repo root as .golangci.yml (see scripts/migrate-golangci-v2.sh).
+
+version: "2"
+
+run:
+  timeout: 120s
+
 linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+formatters:
   enable:
     - gofmt
-    - govet
-    - errcheck
-    - staticcheck
-    - gosimple
-    - ineffassign
-    - unconvert
-    - goconst
-    - prealloc
+    - goimports
 
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
+  max-issues-per-linter: 0
+  max-same-issues: 0

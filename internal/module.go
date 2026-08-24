@@ -121,6 +121,15 @@ func (m *Module) CanHandle(ctx context.Context, req *executorv1.CanHandleRequest
 	}, nil
 }
 
+func envFlagTruthy(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
+
 func (m *Module) commandAllowed(payload string) bool {
 	m.mu.RLock()
 	raw := strings.TrimSpace(m.allowedCommands)
@@ -133,7 +142,14 @@ func (m *Module) commandAllowed(payload string) bool {
 		if prefix == "" {
 			continue
 		}
-		if prefix == "*" || strings.HasPrefix(payload, prefix) {
+		if prefix == "*" {
+			if !envFlagTruthy(os.Getenv("EXECUTOR_ALLOW_WILDCARD")) {
+				slog.Warn("executor-shell: wildcard allowlist rejected; set EXECUTOR_ALLOW_WILDCARD=1 to enable")
+				continue
+			}
+			return true
+		}
+		if strings.HasPrefix(payload, prefix) {
 			return true
 		}
 	}
