@@ -53,6 +53,7 @@ func TestCanHandle(t *testing.T) {
 }
 
 func TestModuleLifecycle(t *testing.T) {
+	t.Setenv("EXECUTOR_ALLOW_WILDCARD", "1")
 	m := NewModule(Config{GRPCAddr: ":0", AllowedCommands: "*"})
 	ctx := context.Background()
 
@@ -131,7 +132,6 @@ func TestCommandAllowed(t *testing.T) {
 		want    bool
 	}{
 		{"", "echo", false},
-		{"*", "anything", true},
 		{"echo", "echo hi", true},
 		{"echo", "ls", false},
 		{"git,make", "make test", true},
@@ -143,9 +143,15 @@ func TestCommandAllowed(t *testing.T) {
 			t.Fatalf("allow=%q payload=%q got %v want %v", tc.allow, tc.payload, got, tc.want)
 		}
 	}
+	t.Setenv("EXECUTOR_ALLOW_WILDCARD", "1")
+	m := NewModule(Config{AllowedCommands: "*"})
+	if got := m.commandAllowed("anything"); !got {
+		t.Fatalf("wildcard allowlist with EXECUTOR_ALLOW_WILDCARD=1: got %v want true", got)
+	}
 }
 
 func TestExecuteContextTimeout(t *testing.T) {
+	t.Setenv("EXECUTOR_ALLOW_WILDCARD", "1")
 	m := NewModule(Config{AllowedCommands: "*"})
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
@@ -166,6 +172,7 @@ func TestExecuteContextTimeout(t *testing.T) {
 }
 
 func TestExecuteContextCancel(t *testing.T) {
+	t.Setenv("EXECUTOR_ALLOW_WILDCARD", "1")
 	m := NewModule(Config{AllowedCommands: "*"})
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
