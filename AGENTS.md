@@ -7,8 +7,10 @@ MuxCore sidecar module (`executor-shell`). Workspace deploy and SSH: [`../AGENTS
 | Field | Value |
 |-------|-------|
 | Directory | `executor-shell` |
-| Capabilities | see muxcore.json |
-| Contracts | none declared |
+| Capabilities | `executor.shell`, `settings` (see muxcore.json) |
+| Contracts | `core/pkg/contracts` **Executor** v0.4.0 |
+
+Optional on the MVP stack: `MVP_ENABLE_EXECUTOR_SHELL=1` in `_mvp/.env` (see `_mvp/run-host.sh`).
 
 ## Agent rules
 
@@ -22,5 +24,5 @@ MuxCore sidecar module (`executor-shell`). Workspace deploy and SSH: [`../AGENTS
 
 ```bash
 cd executor-shell
-go test ./...
+nix-shell -p go --run 'go test ./...'
 ```

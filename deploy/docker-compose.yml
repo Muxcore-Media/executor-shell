@@ -4,11 +4,13 @@ services:
       context: ..
       dockerfile: Dockerfile
     ports:
-      - "9602"
+      - "9605:9605"
     environment:
       MUXCORE_GRPC_ADDR: core:9090
       MUXCORE_INSECURE_DISABLE_TLS: "true"
       MUXCORE_LOG_LEVEL: debug
       MUXCORE_MODULE_ID: executor-shell
+      EXECUTOR_GRPC_ADDR: ":9605"
+      EXECUTOR_ALLOW_WILDCARD: "1"
       EXECUTOR_ALLOWED_COMMANDS: "*"
     restart: unless-stopped

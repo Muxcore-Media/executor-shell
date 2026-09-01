@@ -4,6 +4,11 @@ COPY executor-shell/ /build/executor-shell/
 WORKDIR /build/executor-shell
 RUN go mod download
 RUN CGO_ENABLED=0 go build -o /executor-shell ./cmd/module
-FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=builder /executor-shell /
-ENTRYPOINT ["/executor-shell"]
+
+FROM debian:bookworm-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /executor-shell /usr/local/bin/executor-shell
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/executor-shell"]
