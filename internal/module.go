@@ -43,7 +43,7 @@ func NewModule(cfg Config) *Module {
 		cfg.ID = "executor-shell"
 	}
 	if cfg.GRPCAddr == "" {
-		cfg.GRPCAddr = ":9602"
+		cfg.GRPCAddr = "127.0.0.1:9602"
 	}
 	if v := os.Getenv("EXECUTOR_GRPC_ADDR"); v != "" {
 		cfg.GRPCAddr = v

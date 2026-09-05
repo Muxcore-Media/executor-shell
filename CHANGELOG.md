@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Enable TLS on the module gRPC listener by default via `internal/grpctls`; plaintext only when `MUXCORE_INSECURE_DISABLE_TLS=true` (or `MUXCORE_GRPC_INSECURE`).
 
+### Changed
+
+- Default gRPC listen address is `127.0.0.1:9602` (override with `EXECUTOR_GRPC_ADDR`)
+
 ## [0.1.3] — 2026-08-10
 
 ### Added

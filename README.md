@@ -31,7 +31,7 @@ Worker pool task ──→ executor-shell (gRPC) ──→ sh -c "<payload>"
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `EXECUTOR_GRPC_ADDR` | `:9602` | gRPC listen address |
+| `EXECUTOR_GRPC_ADDR` | `127.0.0.1:9602` | gRPC listen address (set e.g. `:9602` when the listener must accept non-loopback connections) |
 | `EXECUTOR_ALLOWED_COMMANDS` | `""` (deny all) | Comma-separated command prefixes. Empty denies every command. Use `*` only in local tests — **never in production** (see [SECURITY.md](SECURITY.md)). |
 
 ### Security

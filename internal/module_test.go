@@ -30,6 +30,9 @@ func TestModuleInfo(t *testing.T) {
 	if len(info.Capabilities) == 0 || info.Capabilities[0] != "executor.shell" {
 		t.Errorf("expected capability executor.shell, got %v", info.Capabilities)
 	}
+	if info.HTTPAddr != "127.0.0.1:9602" {
+		t.Errorf("HTTPAddr = %q, want 127.0.0.1:9602", info.HTTPAddr)
+	}
 }
 
 func TestCanHandle(t *testing.T) {
@@ -53,7 +56,7 @@ func TestCanHandle(t *testing.T) {
 }
 
 func TestModuleLifecycle(t *testing.T) {
-	m := NewModule(Config{GRPCAddr: ":0", AllowedCommands: "*"})
+	m := NewModule(Config{GRPCAddr: "127.0.0.1:0", AllowedCommands: "*"})
 	ctx := context.Background()
 
 	if err := m.Init(ctx); err != nil {
