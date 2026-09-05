@@ -12,9 +12,11 @@ import (
 	"sync"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/Muxcore-Media/core/pkg/contracts"
 	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
+	"github.com/Muxcore-Media/executor-shell/internal/grpctls"
 	executorv1 "github.com/Muxcore-Media/executor-shell/muxcore/executor/v1"
 )
 
@@ -88,7 +90,21 @@ func (m *Module) Init(ctx context.Context) error {
 }
 
 func (m *Module) Start(ctx context.Context) error {
-	m.grpcSrv = grpc.NewServer()
+	var grpcOpts []grpc.ServerOption
+	tlsCfg, err := grpctls.ServerConfig()
+	if err != nil {
+		return fmt.Errorf("gRPC TLS: %w", err)
+	}
+	if tlsCfg != nil {
+		grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsCfg)))
+		slog.Info("executor-shell gRPC TLS enabled", "addr", m.grpcAddr)
+	} else {
+		slog.Warn("executor-shell gRPC listening without TLS (dev only)",
+			"addr", m.grpcAddr,
+			"hint", "unset MUXCORE_INSECURE_DISABLE_TLS for production",
+		)
+	}
+	m.grpcSrv = grpc.NewServer(grpcOpts...)
 	executorv1.RegisterExecutorServiceServer(m.grpcSrv, m)
 	modulesdk.RegisterSettings(m.grpcSrv, m.id, m)
 	go func() {
