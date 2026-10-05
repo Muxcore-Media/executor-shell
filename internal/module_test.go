@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
+	manifest "github.com/Muxcore-Media/executor-shell"
 	executorv1 "github.com/Muxcore-Media/executor-shell/muxcore/executor/v1"
 )
 
@@ -15,8 +17,8 @@ func TestModuleInfo(t *testing.T) {
 	if info.ID == "" {
 		t.Error("module ID must not be empty")
 	}
-	if info.Version == "" {
-		t.Error("module version must not be empty")
+	if info.Version != modulesdk.ManifestVersion(manifest.ManifestJSON) {
+		t.Errorf("version = %q, want manifest version %q", info.Version, modulesdk.ManifestVersion(manifest.ManifestJSON))
 	}
 	if info.MinCoreVersion == "" {
 		t.Error("MinCoreVersion must not be empty")

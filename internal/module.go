@@ -16,6 +16,7 @@ import (
 
 	"github.com/Muxcore-Media/core/pkg/contracts"
 	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
+	manifest "github.com/Muxcore-Media/executor-shell"
 	"github.com/Muxcore-Media/executor-shell/internal/grpctls"
 	executorv1 "github.com/Muxcore-Media/executor-shell/muxcore/executor/v1"
 )
@@ -62,7 +63,7 @@ func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
 		ID:           m.id,
 		Name:         "Executor Shell",
-		Version:      "0.1.4",
+		Version:      modulesdk.ManifestVersion(manifest.ManifestJSON),
 		Roles:        []string{"executor"},
 		Description:  "Generic shell command executor for the worker pool",
 		Author:       "MuxCore",
