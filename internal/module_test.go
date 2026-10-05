@@ -126,18 +126,21 @@ func TestExecutePrefixAllowlist(t *testing.T) {
 	}
 }
 
+// cmdEcho is a harmless command used by the allow-list tests.
+const cmdEcho = "echo"
+
 func TestCommandAllowed(t *testing.T) {
 	cases := []struct {
 		allow   string
 		payload string
 		want    bool
 	}{
-		{"", "echo", false},
+		{"", cmdEcho, false},
 		{"*", "anything", true},
-		{"echo", "echo hi", true},
-		{"echo", "ls", false},
+		{cmdEcho, "echo hi", true},
+		{cmdEcho, "ls", false},
 		{"git,make", "make test", true},
-		{" , ", "echo", false},
+		{" , ", cmdEcho, false},
 	}
 	for _, tc := range cases {
 		m := NewModule(Config{AllowedCommands: tc.allow})
@@ -196,7 +199,7 @@ func TestExecuteContextCancel(t *testing.T) {
 func TestSettingsAllowedCommandsLive(t *testing.T) {
 	m := NewModule(Config{})
 	defs := m.Settings()
-	if len(defs) != 1 || defs[0].Key != "allowed_commands" {
+	if len(defs) != 1 || defs[0].Key != settingAllowedCommands {
 		t.Fatalf("Settings=%+v", defs)
 	}
 	resp, err := m.Execute(context.Background(), &executorv1.ExecuteRequest{Payload: []byte("echo hi")})
@@ -206,7 +209,7 @@ func TestSettingsAllowedCommandsLive(t *testing.T) {
 	if resp.GetSuccess() {
 		t.Fatal("empty allowlist should deny")
 	}
-	if err := m.UpdateSetting("allowed_commands", "echo "); err != nil {
+	if err := m.UpdateSetting(settingAllowedCommands, cmdEcho+" "); err != nil {
 		t.Fatal(err)
 	}
 	resp, err = m.Execute(context.Background(), &executorv1.ExecuteRequest{Payload: []byte("echo hi")})

@@ -21,7 +21,7 @@ func (m *Module) settingsDefs() []contracts.SettingDef {
 	m.mu.RUnlock()
 	return []contracts.SettingDef{
 		{
-			Key:         "allowed_commands",
+			Key:         settingAllowedCommands,
 			Label:       "Allowed Commands",
 			Type:        contracts.SettingTypeString,
 			Value:       allowed,
@@ -32,9 +32,12 @@ func (m *Module) settingsDefs() []contracts.SettingDef {
 	}
 }
 
+// settingAllowedCommands is the settings key for the command allow-list.
+const settingAllowedCommands = "allowed_commands"
+
 func (m *Module) updateSetting(key, value string) error {
 	switch key {
-	case "allowed_commands", "EXECUTOR_ALLOWED_COMMANDS":
+	case settingAllowedCommands, "EXECUTOR_ALLOWED_COMMANDS":
 		m.mu.Lock()
 		m.allowedCommands = strings.TrimSpace(value)
 		m.mu.Unlock()
