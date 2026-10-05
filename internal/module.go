@@ -181,6 +181,7 @@ func (m *Module) Execute(ctx context.Context, req *executorv1.ExecuteRequest) (*
 	}
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", payload)
+	configureProcessGroup(cmd)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
